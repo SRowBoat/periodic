@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Interactive Periodic Table with Orbital Block Explanation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'alkali-metal': '#f97316',
+                        'alkaline-earth': '#eab308',
+                        'transition-metal': '#3b82f6',
+                        'post-transition': '#06b6d4',
+                        'metalloid': '#10b981',
+                        'reactive-nonmetal': '#84cc16',
+                        'halogen': '#ec4899',
+                        'noble-gas': '#a855f7',
+                        'lanthanide': '#f43f5e',
+                        'actinide': '#e11d48',
+                        'unknown-cat': '#64748b'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .element-grid {
+            display: grid;
+            grid-template-columns: repeat(18, minmax(0, 1fr));
+            gap: 4px;
+        }
+        .element-card {
+            aspect-ratio: 1 / 1;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .dimmed {
+            opacity: 0.12;
+            filter: grayscale(90%);
+            transform: scale(0.94);
+            pointer-events: none;
+        }
+        .radioactive-glow {
+            box-shadow: 0 0 6px rgba(234, 179, 8, 0.3);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans overflow-x-hidden antialiased select-none">
+
+    <!-- Header Section -->
+    <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-30 px-4 py-3">
+        <div class="max-w-[1700px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-indigo-600 rounded-lg text-white shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-atom text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight text-slate-100 flex items-center gap-2">
+                        Periodic Table Explorer
+                        <span class="text-xs font-normal px-2 py-0.5 rounded bg-indigo-950 border border-indigo-700/50 text-indigo-300">118 Elements</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Complete Chemical Data, Multi-Faceted Filters & Orbital Mechanics</p>
+                </div>
+            </div>
+
+            <!-- Controls & Navigation -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Search Box -->
+                <div class="relative w-full sm:w-56">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="searchInput" placeholder="Search element, symbol..." 
+                        class="w-full bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-400 text-sm rounded-lg pl-9 pr-8 py-1.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+                    <button id="clearSearch" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <button id="toggleGuideBtn" class="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-lg text-xs font-medium transition flex items-center gap-2">
+                    <i class="fa-solid fa-graduation-cap"></i> Orbital Blocks Guide
+                </button>
+
+                <button id="resetFilters" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate-left"></i> Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-[1700px] w-full mx-auto p-4 flex flex-col lg:flex-row gap-6">
+        
+        <!-- Sidebar Faceted Filters -->
+        <aside class="w-full lg:w-80 shrink-0 space-y-4 bg-slate-900/60 p-4 rounded-xl border border-slate-800 h-fit">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h2 class="font-semibold text-sm text-slate-200 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-indigo-400"></i> Faceted Filters
+                </h2>
+                <span id="matchingCount" class="text-xs font-mono font-medium px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">118 / 118</span>
+            </div>
+
+            <!-- Facet 1: Radioactivity -->
+            <div class="space-y-2">
+                <label class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-radiation text-amber-400"></i> Radioactivity
+                </label>
+                <div class="grid grid-cols-3 gap-1 bg-slate-950/60 p-1 rounded-lg border border-slate-800" id="radioactivityFilters">
+                    <button data-rad="all" class="rad-btn active px-2 py-1 text-xs font-medium rounded-md transition text-indigo-300 bg-indigo-600/30 border border-indigo-500/40">All</button>
+                    <button data-rad="stable" class="rad-btn px-2 py-1 text-xs font-medium rounded-md transition text-slate-400 hover:text-slate-200">Stable</button>
+                    <button data-rad="radioactive" class="rad-btn px-2 py-1 text-xs font-medium rounded-md transition text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1">
+                        Radioactive
+                    </button>
+                </div>
+            </div>
+
+            <!-- Facet 2: Orbital Block -->
+            <div class="space-y-2 border-t border-slate-800 pt-3">
+                <label class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-layer-group text-sky-400"></i> Orbital Block
+                </label>
+                <div class="grid grid-cols-4 gap-1.5" id="blockFilters">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Facet 3: Chemical Category -->
+            <div class="space-y-2 border-t border-slate-800 pt-3">
+                <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Chemical Category</label>
+                <div class="space-y-1 max-h-48 overflow-y-auto pr-1" id="categoryFilters">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Facet 4: State of Matter -->
+            <div class="space-y-2 border-t border-slate-800 pt-3">
+                <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">State at 20°C</label>
+                <div class="grid grid-cols-2 gap-1.5" id="stateFilters">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Legend Summary -->
+            <div class="border-t border-slate-800 pt-3 text-xs text-slate-400 space-y-1 font-mono">
+                <div class="flex items-center justify-between">
+                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-radiation text-amber-400 text-xs"></i> Radioactive</span>
+                    <span class="text-slate-500">38 elements</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-shield-halved text-emerald-400 text-xs"></i> Stable Isotope</span>
+                    <span class="text-slate-500">80 elements</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Column: Interactive Grid & Inspector / Guide -->
+        <section class="flex-1 flex flex-col gap-5 overflow-hidden">
+            
+            <!-- Orbital Blocks Educational Section (Modal/Accordion) -->
+            <div id="orbitalGuidePanel" class="bg-indigo-950/40 border border-indigo-800/60 rounded-xl p-5 shadow-2xl relative transition-all">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-atom text-indigo-400 text-xl"></i>
+                        <h3 class="font-bold text-slate-100 text-base">Understanding Orbital Blocks ($s, p, d, f$)</h3>
+                    </div>
+                    <button id="closeGuideBtn" class="text-slate-400 hover:text-white text-sm">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                    The periodic table's distinctive layout is directly dictated by <strong>quantum mechanics</strong> and electron shell structure. Elements are divided into four orbital blocks based on which subshell receives its highest-energy valence electrons.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                    <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-800">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-indigo-400">s-Block</span>
+                            <span class="text-[10px] bg-indigo-900/60 text-indigo-200 px-1.5 py-0.5 rounded font-mono">2 e⁻ max</span>
+                        </div>
+                        <p class="text-slate-400 leading-normal">Groups 1, 2, plus Hydrogen & Helium. Spherical orbital shape. Contains reactive alkali & alkaline earth metals.</p>
+                    </div>
+                    <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-800">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-sky-400">p-Block</span>
+                            <span class="text-[10px] bg-sky-900/60 text-sky-200 px-1.5 py-0.5 rounded font-mono">6 e⁻ max</span>
+                        </div>
+                        <p class="text-slate-400 leading-normal">Groups 13 to 18. Dumbbell-shaped orbitals. Includes nonmetals, halogens, metalloids, and noble gases.</p>
+                    </div>
+                    <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-800">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-amber-400">d-Block</span>
+                            <span class="text-[10px] bg-amber-900/60 text-amber-200 px-1.5 py-0.5 rounded font-mono">10 e⁻ max</span>
+                        </div>
+                        <p class="text-slate-400 leading-normal">Groups 3 to 12. Clover-shaped orbitals. Transition metals filling $3d, 4d, 5d,$ and $6d$ subshells.</p>
+                    </div>
+                    <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-800">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-rose-400">f-Block</span>
+                            <span class="text-[10px] bg-rose-900/60 text-rose-200 px-1.5 py-0.5 rounded font-mono">14 e⁻ max</span>
+                        </div>
+                        <p class="text-slate-400 leading-normal">Inner Transition metals (Lanthanides & Actinides). Complex multi-lobed orbitals filling $4f$ and $5f$ subshells.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Periodic Table Grid Canvas Container -->
+            <div class="overflow-x-auto pb-2">
+                <div class="min-w-[880px] max-w-[1300px] mx-auto space-y-5">
+                    
+                    <!-- Main Periodic Grid (18 columns x 7 rows) -->
+                    <div id="mainTableGrid" class="element-grid">
+                        <!-- Dynamically filled by JavaScript -->
+                    </div>
+
+                    <!-- Inner Transition Elements (Lanthanides & Actinides) -->
+                    <div class="pt-3 border-t border-slate-800">
+                        <div class="text-[11px] font-semibold text-slate-400 mb-2 uppercase tracking-widest text-center flex items-center justify-center gap-2">
+                            <span>f-Block Elements (Inner Transition Metals)</span>
+                        </div>
+                        <div class="space-y-1.5">
+                            <div id="lanthanideRow" class="grid grid-cols-[repeat(15,minmax(0,1fr))] gap-1 max-w-[calc(100%*15/18)] ml-auto">
+                                <!-- Dynamically filled -->
+                            </div>
+                            <div id="actinideRow" class="grid grid-cols-[repeat(15,minmax(0,1fr))] gap-1 max-w-[calc(100%*15/18)] ml-auto">
+                                <!-- Dynamically filled -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Element Detail Inspector Panel -->
+            <div id="inspectorPanel" class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-xl relative overflow-hidden">
+                <div id="inspectorDefaultState" class="text-center py-5 text-slate-500">
+                    <i class="fa-solid fa-hand-pointer text-xl mb-1.5 opacity-50"></i>
+                    <p class="text-xs">Hover over or click any element tile to view detailed physical properties, nuclear radioactivity, and orbital configuration.</p>
+                </div>
+                
+                <div id="inspectorContent" class="hidden flex flex-col md:flex-row gap-5 items-center md:items-start">
+                    <!-- Element Preview Tile -->
+                    <div id="inspectorTile" class="w-32 h-32 rounded-xl p-3 border flex flex-col justify-between shrink-0 shadow-2xl relative bg-slate-950">
+                        <div class="flex justify-between items-start text-xs font-mono">
+                            <span id="inspNumber" class="font-bold"></span>
+                            <span id="inspMass" class="text-[10px] opacity-80"></span>
+                        </div>
+                        <div id="inspSymbol" class="text-4xl font-extrabold text-center my-auto tracking-tight"></div>
+                        <div id="inspName" class="text-xs text-center font-medium truncate"></div>
+                    </div>
+
+                    <!-- Specifications Grid -->
+                    <div class="flex-1 w-full grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                        <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                            <span class="text-slate-400 block text-[10px] mb-0.5">Category</span>
+                            <span id="inspCategory" class="font-semibold text-slate-200"></span>
+                        </div>
+                        <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                            <span class="text-slate-400 block text-[10px] mb-0.5">Radioactivity</span>
+                            <span id="inspRad" class="font-semibold flex items-center gap-1"></span>
+                        </div>
+                        <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                            <span class="text-slate-400 block text-[10px] mb-0.5">Orbital Block</span>
+                            <span id="inspBlock" class="font-semibold text-slate-200 uppercase font-mono"></span>
+                        </div>
+                        <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                            <span class="text-slate-400 block text-[10px] mb-0.5">State @ 20°C</span>
+                            <span id="inspState" class="font-semibold text-slate-200"></span>
+                        </div>
+                        <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800 col-span-2">
+                            <span class="text-slate-400 block text-[10px] mb-0.5">Electron Configuration</span>
+                            <span id="inspConfig" class="font-mono text-indigo-300 font-medium"></span>
+                        </div>
+                        <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800 col-span-2">
+                            <span class="text-slate-400 block text-[10px] mb-0.5">Periodic Coordinates</span>
+                            <span id="inspGroupPeriod" class="font-semibold text-slate-200"></span>
+                        </div>
+                        <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800 col-span-4">
+                            <span class="text-slate-400 block text-[10px] mb-0.5">Chemical Summary</span>
+                            <span id="inspSummary" class="text-slate-300 italic text-[11px] leading-snug"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Full dataset for all 118 elements with explicit radioactivity metadata
+        const elementsData = [
+            { n: 1, s: "H", name: "Hydrogen", mass: "1.008", cat: "reactive-nonmetal", state: "Gas", block: "s", period: 1, group: 1, config: "1s¹", radioactive: false, summary: "Lightest element, highly flammable gas; key constituent of water and star nuclear fusion." },
+            { n: 2, s: "He", name: "Helium", mass: "4.0026", cat: "noble-gas", state: "Gas", block: "s", period: 1, group: 18, config: "1s²", radioactive: false, summary: "Colorless, inert noble gas; second most abundant element in the visible universe." },
+            { n: 3, s: "Li", name: "Lithium", mass: "6.94", cat: "alkali-metal", state: "Solid", block: "s", period: 2, group: 1, config: "[He] 2s¹", radioactive: false, summary: "Soft, silvery alkali metal; lowest density of all solid elements, core to modern batteries." },
+            { n: 4, s: "Be", name: "Beryllium", mass: "9.0122", cat: "alkaline-earth", state: "Solid", block: "s", period: 2, group: 2, config: "[He] 2s²", radioactive: false, summary: "Strong, lightweight alkaline earth metal used in aerospace and X-ray tube windows." },
+            { n: 5, s: "B", name: "Boron", mass: "10.81", cat: "metalloid", state: "Solid", block: "p", period: 2, group: 13, config: "[He] 2s² 2p¹", radioactive: false, summary: "Metalloid essential in fiberglass, ceramic glazes, and semiconductors." },
+            { n: 6, s: "C", name: "Carbon", mass: "12.011", cat: "reactive-nonmetal", state: "Solid", block: "p", period: 2, group: 14, config: "[He] 2s² 2p²", radioactive: false, summary: "Chemical basis for all known organic life; exists as diamond, graphite, and graphene." },
+            { n: 7, s: "N", name: "Nitrogen", mass: "14.007", cat: "reactive-nonmetal", state: "Gas", block: "p", period: 2, group: 15, config: "[He] 2s² 2p³", radioactive: false, summary: "Diatomic gas making up 78% of Earth's atmosphere." },
+            { n: 8, s: "O", name: "Oxygen", mass: "15.999", cat: "reactive-nonmetal", state: "Gas", block: "p", period: 2, group: 16, config: "[He] 2s² 2p⁴", radioactive: false, summary: "Highly reactive nonmetal required for respiration in aerobic organisms." },
+            { n: 9, s: "F", name: "Fluorine", mass: "18.998", cat: "halogen", state: "Gas", block: "p", period: 2, group: 17, config: "[He] 2s² 2p⁵", radioactive: false, summary: "Extremely toxic, pale yellow halogen gas; most chemically reactive element." },
+            { n: 10, s: "Ne", name: "Neon", mass: "20.180", cat: "noble-gas", state: "Gas", block: "p", period: 2, group: 18, config: "[He] 2s² 2p⁶", radioactive: false, summary: "Inert noble gas glowing reddish-orange in high-voltage electrical discharge signs." },
+            { n: 11, s: "Na", name: "Sodium", mass: "22.990", cat: "alkali-metal", state: "Solid", block: "s", period: 3, group: 1, config: "[Ne] 3s¹", radioactive: false, summary: "Highly reactive alkali metal forming standard table salt (NaCl)." },
+            { n: 12, s: "Mg", name: "Magnesium", mass: "24.305", cat: "alkaline-earth", state: "Solid", block: "s", period: 3, group: 2, config: "[Ne] 3s²", radioactive: false, summary: "Lightweight, strong alkaline earth metal critical in chlorophyll and human biochemistry." },
+            { n: 13, s: "Al", name: "Aluminium", mass: "26.982", cat: "post-transition", state: "Solid", block: "p", period: 3, group: 13, config: "[Ne] 3s² 3p¹", radioactive: false, summary: "Low-density metal resistant to corrosion; most abundant metal in Earth's crust." },
+            { n: 14, s: "Si", name: "Silicon", mass: "28.085", cat: "metalloid", state: "Solid", block: "p", period: 3, group: 14, config: "[Ne] 3s² 3p²", radioactive: false, summary: "Hard, crystalline semiconductor metalloid underpinning modern computer microchips." },
+            { n: 15, s: "P", name: "Phosphorus", mass: "30.974", cat: "reactive-nonmetal", state: "Solid", block: "p", period: 3, group: 15, config: "[Ne] 3s² 3p³", radioactive: false, summary: "Essential nonmetal forming the backbone of biological DNA and ATP molecules." },
+            { n: 16, s: "S", name: "Sulfur", mass: "32.06", cat: "reactive-nonmetal", state: "Solid", block: "p", period: 3, group: 16, config: "[Ne] 3s² 3p⁴", radioactive: false, summary: "Bright yellow crystalline solid nonmetal with distinct vulcanization properties." },
+            { n: 17, s: "Cl", name: "Chlorine", mass: "35.45", cat: "halogen", state: "Gas", block: "p", period: 3, group: 17, config: "[Ne] 3s² 3p⁵", radioactive: false, summary: "Yellow-green halogen gas utilized worldwide for sanitization and PVC production." },
+            { n: 18, s: "Ar", name: "Argon", mass: "39.948", cat: "noble-gas", state: "Gas", block: "p", period: 3, group: 18, config: "[Ne] 3s² 3p⁶", radioactive: false, summary: "Third most abundant gas in Earth's atmosphere, used as an inert shielding gas." },
+            { n: 19, s: "K", name: "Potassium", mass: "39.098", cat: "alkali-metal", state: "Solid", block: "s", period: 4, group: 1, config: "[Ar] 4s¹", radioactive: false, summary: "Soft alkali metal that reacts violently with water; crucial electrolyte for cell signaling." },
+            { n: 20, s: "Ca", name: "Calcium", mass: "40.078", cat: "alkaline-earth", state: "Solid", block: "s", period: 4, group: 2, config: "[Ar] 4s²", radioactive: false, summary: "Essential mineral required for bone density, muscular contraction, and cellular regulation." },
+            { n: 21, s: "Sc", name: "Scandium", mass: "44.956", cat: "transition-metal", state: "Solid", block: "d", period: 4, group: 3, config: "[Ar] 3d¹ 4s²", radioactive: false, summary: "Rare transition metal used in lightweight high-performance sports equipment." },
+            { n: 22, s: "Ti", name: "Titanium", mass: "47.867", cat: "transition-metal", state: "Solid", block: "d", period: 4, group: 4, config: "[Ar] 3d² 4s²", radioactive: false, summary: "Strong, low-density, highly corrosion-resistant metal used in aerospace and medical implants." },
+            { n: 23, s: "V", name: "Vanadium", mass: "50.942", cat: "transition-metal", state: "Solid", block: "d", period: 4, group: 5, config: "[Ar] 3d³ 4s²", radioactive: false, summary: "Hard transition metal used as a steel alloy additive to increase strength and toughness." },
+            { n: 24, s: "Cr", name: "Chromium", mass: "51.996", cat: "transition-metal", state: "Solid", block: "d", period: 4, group: 6, config: "[Ar] 3d⁵ 4s¹", radioactive: false, summary: "Lustrous hard metal prized for decorative chrome plating and stainless steel production." },
+            { n: 25, s: "Mn", name: "Manganese", mass: "54.938", cat: "transition-metal", state: "Solid", block: "d", period: 4, group: 7, config: "[Ar] 3d⁵ 4s²", radioactive: false, summary: "Essential industrial transition metal used to reduce brittleness in commercial steel." },
+            { n: 26, s: "Fe", name: "Iron", mass: "55.845", cat: "transition-metal", state: "Solid", block: "d", period: 4, group: 8, config: "[Ar] 3d⁶ 4s²", radioactive: false, summary: "Most common metal by mass on Earth; forms planetary core and structural steel." },
+            { n: 27, s: "Co", name: "Cobalt", mass: "58.933", cat: "transition-metal", state: "Solid", block: "d", period: 4, group: 9, config: "[Ar] 3d⁷ 4s²", radioactive: false, summary: "Ferromagnetic transition metal vital in lithium-ion batteries and blue ceramic pigments." },
+            { n: 28, s: "Ni", name: "Nickel", mass: "58.693", cat: "transition-metal", state: "Solid", block: "d", period: 4, group: 10, config: "[Ar] 3d⁸ 4s²", radioactive: false, summary: "Corrosion-resistant metal used in coinage, stainless steel, and rechargeable batteries." },
+            { n: 29, s: "Cu", name: "Copper", mass: "63.546", cat: "transition-metal", state: "Solid", block: "d", period: 4, group: 11, config: "[Ar] 3d¹⁰ 4s¹", radioactive: false, summary: "Reddish metal with exceptional thermal and electrical conductivity." },
+            { n: 30, s: "Zn", name: "Zinc", mass: "65.38", cat: "transition-metal", state: "Solid", block: "d", period: 4, group: 12, config: "[Ar] 3d¹⁰ 4s²", radioactive: false, summary: "Galvanizing agent used to protect iron from rust; vital trace nutrient." },
+            { n: 31, s: "Ga", name: "Gallium", mass: "69.723", cat: "post-transition", state: "Solid", block: "p", period: 4, group: 13, config: "[Ar] 3d¹⁰ 4s² 4p¹", radioactive: false, summary: "Post-transition metal that melts in human hand (29.76°C); key in LEDs." },
+            { n: 32, s: "Ge", name: "Germanium", mass: "72.630", cat: "metalloid", state: "Solid", block: "p", period: 4, group: 14, config: "[Ar] 3d¹⁰ 4s² 4p²", radioactive: false, summary: "Lustrous hard metalloid used in early transistors and fiber optics." },
+            { n: 33, s: "As", name: "Arsenic", mass: "74.922", cat: "metalloid", state: "Solid", block: "p", period: 4, group: 15, config: "[Ar] 3d¹⁰ 4s² 4p³", radioactive: false, summary: "Notorious poisonous metalloid; used in specialized semiconductors (GaAs)." },
+            { n: 34, s: "Se", name: "Selenium", mass: "78.971", cat: "reactive-nonmetal", state: "Solid", block: "p", period: 4, group: 16, config: "[Ar] 3d¹⁰ 4s² 4p⁴", radioactive: false, summary: "Photovoltaic nonmetal used in xerography solar cells and glass tinting." },
+            { n: 35, s: "Br", name: "Bromine", mass: "79.904", cat: "halogen", state: "Liquid", block: "p", period: 4, group: 17, config: "[Ar] 3d¹⁰ 4s² 4p⁵", radioactive: false, summary: "Deep red-brown liquid halogen with a sharp fumes at room temperature." },
+            { n: 36, s: "Kr", name: "Krypton", mass: "83.798", cat: "noble-gas", state: "Gas", block: "p", period: 4, group: 18, config: "[Ar] 3d¹⁰ 4s² 4p⁶", radioactive: false, summary: "Noble gas used in high-efficiency photographic flashes and fluorescent lights." },
+            { n: 37, s: "Rb", name: "Rubidium", mass: "85.468", cat: "alkali-metal", state: "Solid", block: "s", period: 5, group: 1, config: "[Kr] 5s¹", radioactive: false, summary: "Highly reactive alkali metal used in ultra-precise laser atomic clocks." },
+            { n: 38, s: "Sr", name: "Strontium", mass: "87.62", cat: "alkaline-earth", state: "Solid", block: "s", period: 5, group: 2, config: "[Kr] 5s²", radioactive: false, summary: "Alkaline earth metal giving brilliant red color to fireworks and flares." },
+            { n: 39, s: "Y", name: "Yttrium", mass: "88.906", cat: "transition-metal", state: "Solid", block: "d", period: 5, group: 3, config: "[Kr] 4d¹ 5s²", radioactive: false, summary: "Transition metal used in YAG surgical lasers and TV phosphors." },
+            { n: 40, s: "Zr", name: "Zirconium", mass: "91.224", cat: "transition-metal", state: "Solid", block: "d", period: 5, group: 4, config: "[Kr] 4d² 5s²", radioactive: false, summary: "Extremely corrosion-resistant metal used in nuclear reactor fuel rod cladding." },
+            { n: 41, s: "Nb", name: "Niobium", mass: "92.906", cat: "transition-metal", state: "Solid", block: "d", period: 5, group: 5, config: "[Kr] 4d⁴ 5s¹", radioactive: false, summary: "Ductile transition metal used in superconducting magnets for MRI scanners." },
+            { n: 42, s: "Mo", name: "Molybdenum", mass: "95.95", cat: "transition-metal", state: "Solid", block: "d", period: 5, group: 6, config: "[Kr] 4d⁵ 5s¹", radioactive: false, summary: "High-melting-point metal critical for ultra-high-strength steel alloys." },
+            { n: 43, s: "Tc", name: "Technetium", mass: "(98)", cat: "transition-metal", state: "Solid", block: "d", period: 5, group: 7, config: "[Kr] 4d⁵ 5s²", radioactive: true, summary: "Lightest element with no stable isotopes; widely used in medical nuclear imaging." },
+            { n: 44, s: "Ru", name: "Ruthenium", mass: "101.07", cat: "transition-metal", state: "Solid", block: "d", period: 5, group: 8, config: "[Kr] 4d⁷ 5s¹", radioactive: false, summary: "Rare platinum group metal used for wear-resistant electrical contacts." },
+            { n: 45, s: "Rh", name: "Rhodium", mass: "102.91", cat: "transition-metal", state: "Solid", block: "d", period: 5, group: 9, config: "[Kr] 4d⁸ 5s¹", radioactive: false, summary: "Extremely rare, valuable noble metal used in automotive catalytic converters." },
+            { n: 46, s: "Pd", name: "Palladium", mass: "106.42", cat: "transition-metal", state: "Solid", block: "d", period: 5, group: 10, config: "[Kr] 4d¹⁰", radioactive: false, summary: "Rare lustrous metal capable of absorbing 900 times its volume in hydrogen gas." },
+            { n: 47, s: "Ag", name: "Silver", mass: "107.87", cat: "transition-metal", state: "Solid", block: "d", period: 5, group: 11, config: "[Kr] 4d¹⁰ 5s¹", radioactive: false, summary: "Highest electrical and thermal conductivity of any known pure metal." },
+            { n: 48, s: "Cd", name: "Cadmium", mass: "112.41", cat: "transition-metal", state: "Solid", block: "d", period: 5, group: 12, config: "[Kr] 4d¹⁰ 5s²", radioactive: false, summary: "Toxic metal historically used in corrosion coatings and NiCd rechargeable batteries." },
+            { n: 49, s: "In", name: "Indium", mass: "114.82", cat: "post-transition", state: "Solid", block: "p", period: 5, group: 13, config: "[Kr] 4d¹⁰ 5s² 5p¹", radioactive: false, summary: "Very soft metal; Indium Tin Oxide transparent coatings power modern touchscreens." },
+            { n: 50, s: "Sn", name: "Tin", mass: "118.71", cat: "post-transition", state: "Solid", block: "p", period: 5, group: 14, config: "[Kr] 4d¹⁰ 5s² 5p²", radioactive: false, summary: "Malleable post-transition metal alloyed with copper to create ancient bronze." },
+            { n: 51, s: "Sb", name: "Antimony", mass: "121.76", cat: "metalloid", state: "Solid", block: "p", period: 5, group: 15, config: "[Kr] 4d¹⁰ 5s² 5p³", radioactive: false, summary: "Lustrous gray metalloid used in flame retardants and microelectronic devices." },
+            { n: 52, s: "Te", name: "Tellurium", mass: "127.60", cat: "metalloid", state: "Solid", block: "p", period: 5, group: 16, config: "[Kr] 4d¹⁰ 5s² 5p⁴", radioactive: false, summary: "Brittle metalloid used in solar panels and thermoelectric cooling modules." },
+            { n: 53, s: "I", name: "Iodine", mass: "126.90", cat: "halogen", state: "Solid", block: "p", period: 5, group: 17, config: "[Kr] 4d¹⁰ 5s² 5p⁵", radioactive: false, summary: "Lustrous violet-black nonmetal; essential micronutrient for thyroid hormone production." },
+            { n: 54, s: "Xe", name: "Xenon", mass: "131.29", cat: "noble-gas", state: "Gas", block: "p", period: 5, group: 18, config: "[Kr] 4d¹⁰ 5s² 5p⁶", radioactive: false, summary: "Heavy noble gas used in high-intensity xenon arc lamps and spacecraft ion engines." },
+            { n: 55, s: "Cs", name: "Caesium", mass: "132.91", cat: "alkali-metal", state: "Solid", block: "s", period: 6, group: 1, config: "[Xe] 6s¹", radioactive: false, summary: "Soft golden alkali metal; atomic resonance frequency defines the standard SI second." },
+            { n: 56, s: "Ba", name: "Barium", mass: "137.33", cat: "alkaline-earth", state: "Solid", block: "s", period: 6, group: 2, config: "[Xe] 6s²", radioactive: false, summary: "High-density alkaline earth metal used in radiocontrast agents for stomach imaging." },
+            
+            // Lanthanides (57-71)
+            { n: 57, s: "La", name: "Lanthanum", mass: "138.91", cat: "lanthanide", state: "Solid", block: "f", period: 6, group: 3, config: "[Xe] 5d¹ 6s²", radioactive: false, summary: "Silvery soft rare-earth metal; namesake of the Lanthanide element series." },
+            { n: 58, s: "Ce", name: "Cerium", mass: "140.12", cat: "lanthanide", state: "Solid", block: "f", period: 6, group: 3, config: "[Xe] 4f¹ 5d¹ 6s²", radioactive: false, summary: "Most abundant rare earth metal; key component of lighter flints (mischmetal)." },
+            { n: 59, s: "Pr", name: "Praseodymium", mass: "140.91", cat: "lanthanide", state: "Solid", block: "f", period: 6, group: 3, config: "[Xe] 4f³ 6s²", radioactive: false, summary: "Soft rare-earth metal providing yellow tinting in studio glasses and ceramics." },
+            { n: 60, s: "Nd", name: "Neodymium", mass: "144.24", cat: "lanthanide", state: "Solid", block: "f", period: 6, group: 3, config: "[Xe] 4f⁴ 6s²", radioactive: false, summary: "Essential component of super-strong permanent magnets (NdFeB) used in electric motors." },
+            { n: 61, s: "Pm", name: "Promethium", mass: "(145)", cat: "lanthanide", state: "Solid", block: "f", period: 6, group: 3, config: "[Xe] 4f⁵ 6s²", radioactive: true, summary: "Radioactive lanthanide with no stable isotopes; used in miniature nuclear batteries." },
+            { n: 62, s: "Sm", name: "Samarium", mass: "150.36", cat: "lanthanide", state: "Solid", block: "f", period: 6, group: 3, config: "[Xe] 4f⁶ 6s²", radioactive: false, summary: "Lanthanide used in heat-resistant Samarium-Cobalt high-temperature permanent magnets." },
+            { n: 63, s: "Eu", name: "Europium", mass: "151.96", cat: "lanthanide", state: "Solid", block: "f", period: 6, group: 3, config: "[Xe] 4f⁷ 6s²", radioactive: false, summary: "Most reactive rare-earth element; red phosphors used in security features on euro bills." },
+            { n: 64, s: "Gd", name: "Gadolinium", mass: "157.25", cat: "lanthanide", state: "Solid", block: "f", period: 6, group: 3, config: "[Xe] 4f⁷ 5d¹ 6s²", radioactive: false, summary: "Paramagnetic lanthanide metal widely used as intravenous contrast in MRI scans." },
+            { n: 65, s: "Tb", name: "Terbium", mass: "158.93", cat: "lanthanide", state: "Solid", block: "f", period: 6, group: 3, config: "[Xe] 4f⁹ 6s²", radioactive: false, summary: "Rare earth metal used in green trichromatic lighting phosphors and sonar sensors." },
+            { n: 66, s: "Dy", name: "Dysprosium", mass: "162.50", cat: "lanthanide", state: "Solid", block: "f", period: 6, group: 3, config: "[Xe] 4f¹⁰ 6s²", radioactive: false, summary: "Lanthanide with high magnetic susceptibility, stabilizing magnets in EV engines." },
+            { n: 67, s: "Ho", name: "Holmium", mass: "164.93", cat: "lanthanide", state: "Solid", block: "f", period: 6, group: 3, config: "[Xe] 4f¹¹ 6s²", radioactive: false, summary: "Possesses the highest magnetic strength of any element; used in medical lasers." },
+            { n: 68, s: "Er", name: "Erbium", mass: "167.26", cat: "lanthanide", state: "Solid", block: "f", period: 6, group: 3, config: "[Xe] 4f¹² 6s²", radioactive: false, summary: "Pink rare-earth ion used as laser dopant in fiber optic repeaters." },
+            { n: 69, s: "Tm", name: "Thulium", mass: "168.93", cat: "lanthanide", state: "Solid", block: "f", period: 6, group: 3, config: "[Xe] 4f¹³ 6s²", radioactive: false, summary: "Second-least abundant naturally occurring lanthanide; used in portable X-ray emitters." },
+            { n: 70, s: "Yb", name: "Ytterbium", mass: "173.05", cat: "lanthanide", state: "Solid", block: "f", period: 6, group: 3, config: "[Xe] 4f¹⁴ 6s²", radioactive: false, summary: "Soft rare-earth metal used in atomic clocks and high-stress steel sensors." },
+            { n: 71, s: "Lu", name: "Lutetium", mass: "174.97", cat: "lanthanide", state: "Solid", block: "f", period: 6, group: 3, config: "[Xe] 4f¹⁴ 5d¹ 6s²", radioactive: false, summary: "Densest and hardest lanthanide element; used in PET brain scanner detectors." },
+
+            // Period 6 d/p block
+            { n: 72, s: "Hf", name: "Hafnium", mass: "178.49", cat: "transition-metal", state: "Solid", block: "d", period: 6, group: 4, config: "[Xe] 4f¹⁴ 5d² 6s²", radioactive: false, summary: "Lustrous transition metal used in nuclear control rods and microprocessors." },
+            { n: 73, s: "Ta", name: "Tantalum", mass: "180.95", cat: "transition-metal", state: "Solid", block: "d", period: 6, group: 5, config: "[Xe] 4f¹⁴ 5d³ 6s²", radioactive: false, summary: "Corrosion-proof metal widely used in miniaturized cell phone capacitors." },
+            { n: 74, s: "W", name: "Tungsten", mass: "183.84", cat: "transition-metal", state: "Solid", block: "d", period: 6, group: 6, config: "[Xe] 4f¹⁴ 5d⁴ 6s²", radioactive: false, summary: "Highest melting point of all known pure metals (3422°C)." },
+            { n: 75, s: "Re", name: "Rhenium", mass: "186.21", cat: "transition-metal", state: "Solid", block: "d", period: 6, group: 7, config: "[Xe] 4f¹⁴ 5d⁵ 6s²", radioactive: false, summary: "Ultra-rare transition metal used in superalloys for high-temperature jet turbine blades." },
+            { n: 76, s: "Os", name: "Osmium", mass: "190.23", cat: "transition-metal", state: "Solid", block: "d", period: 6, group: 8, config: "[Xe] 4f¹⁴ 5d⁶ 6s²", radioactive: false, summary: "Densest naturally occurring element (~22.59 g/cm³)." },
+            { n: 77, s: "Ir", name: "Iridium", mass: "192.22", cat: "transition-metal", state: "Solid", block: "d", period: 6, group: 9, config: "[Xe] 4f¹⁴ 5d⁷ 6s²", radioactive: false, summary: "Most corrosion-resistant metal known; key marker in Cretaceous asteroid impact boundary." },
+            { n: 78, s: "Pt", name: "Platinum", mass: "195.08", cat: "transition-metal", state: "Solid", block: "d", period: 6, group: 10, config: "[Xe] 4f¹⁴ 5d⁹ 6s¹", radioactive: false, summary: "Precious noble metal prized in jewelry, laboratory crucibles, and catalytic converters." },
+            { n: 79, s: "Au", name: "Gold", mass: "196.97", cat: "transition-metal", state: "Solid", block: "d", period: 6, group: 11, config: "[Xe] 4f¹⁴ 5d¹⁰ 6s¹", radioactive: false, summary: "Most malleable metal known; untarnished precious metal store of value." },
+            { n: 80, s: "Hg", name: "Mercury", mass: "200.59", cat: "transition-metal", state: "Liquid", block: "d", period: 6, group: 12, config: "[Xe] 4f¹⁴ 5d¹⁰ 6s²", radioactive: false, summary: "Dense liquid metal at room temp, historically used in barometers and thermometers." },
+            { n: 81, s: "Tl", name: "Thallium", mass: "204.38", cat: "post-transition", state: "Solid", block: "p", period: 6, group: 13, config: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p¹", radioactive: false, summary: "Soft, highly toxic post-transition metal historically used in rodenticides." },
+            { n: 82, s: "Pb", name: "Lead", mass: "207.2", cat: "post-transition", state: "Solid", block: "p", period: 6, group: 14, config: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p²", radioactive: false, summary: "Heavy, soft metal used in radiation shielding and lead-acid batteries." },
+            { n: 83, s: "Bi", name: "Bismuth", mass: "208.98", cat: "post-transition", state: "Solid", block: "p", period: 6, group: 15, config: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p³", radioactive: true, summary: "Primordial element with an extremely long half-life (1.9×10¹⁹ yrs); non-toxic heavy metal." },
+            { n: 84, s: "Po", name: "Polonium", mass: "(209)", cat: "post-transition", state: "Solid", block: "p", period: 6, group: 16, config: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁴", radioactive: true, summary: "Highly radioactive, rare metalloid discovered by Marie & Pierre Curie." },
+            { n: 85, s: "At", name: "Astatine", mass: "(210)", cat: "halogen", state: "Solid", block: "p", period: 6, group: 17, config: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁵", radioactive: true, summary: "Extremely rare, highly radioactive halogen element." },
+            { n: 86, s: "Rn", name: "Radon", mass: "(222)", cat: "noble-gas", state: "Gas", block: "p", period: 6, group: 18, config: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁶", radioactive: true, summary: "Radioactive noble gas produced by natural decay of radium in earth's crust." },
+            { n: 87, s: "Fr", name: "Francium", mass: "(223)", cat: "alkali-metal", state: "Solid", block: "s", period: 7, group: 1, config: "[Rn] 7s¹", radioactive: true, summary: "Extremely unstable alkali metal; second-rarest element in Earth's crust." },
+            { n: 88, s: "Ra", name: "Radium", mass: "(226)", cat: "alkaline-earth", state: "Solid", block: "s", period: 7, group: 2, config: "[Rn] 7s²", radioactive: true, summary: "Intensely radioactive element discovered by Curie; glows faint blue in dark." },
+
+            // Actinides (89-103)
+            { n: 89, s: "Ac", name: "Actinium", mass: "(227)", cat: "actinide", state: "Solid", block: "f", period: 7, group: 3, config: "[Rn] 6d¹ 7s²", radioactive: true, summary: "Radioactive actinide metal that glows blue due to intense air ionization." },
+            { n: 90, s: "Th", name: "Thorium", mass: "232.04", cat: "actinide", state: "Solid", block: "f", period: 7, group: 3, config: "[Rn] 6d² 7s²", radioactive: true, summary: "Weakly radioactive primordial actinide; promising clean nuclear fuel candidate." },
+            { n: 91, s: "Pa", name: "Protactinium", mass: "231.04", cat: "actinide", state: "Solid", block: "f", period: 7, group: 3, config: "[Rn] 5f² 6d¹ 7s²", radioactive: true, summary: "Dense, silvery-gray toxic and radioactive actinide metal." },
+            { n: 92, s: "U", name: "Uranium", mass: "238.03", cat: "actinide", state: "Solid", block: "f", period: 7, group: 3, config: "[Rn] 5f³ 6d¹ 7s²", radioactive: true, summary: "Heavy radioactive primordial element; primary fissile fuel for nuclear reactors." },
+            { n: 93, s: "Np", name: "Neptunium", mass: "(237)", cat: "actinide", state: "Solid", block: "f", period: 7, group: 3, config: "[Rn] 5f⁴ 6d¹ 7s²", radioactive: true, summary: "First transuranic element synthesized; byproduct of nuclear power reactors." },
+            { n: 94, s: "Pu", name: "Plutonium", mass: "(244)", cat: "actinide", state: "Solid", block: "f", period: 7, group: 3, config: "[Rn] 5f⁶ 7s²", radioactive: true, summary: "Key fissile transuranic metal used in nuclear weapon design and deep space RTGs." },
+            { n: 95, s: "Am", name: "Americium", mass: "(243)", cat: "actinide", state: "Solid", block: "f", period: 7, group: 3, config: "[Rn] 5f⁷ 7s²", radioactive: true, summary: "Synthetic radioactive element used as ionization source in household smoke detectors." },
+            { n: 96, s: "Cm", name: "Curium", mass: "(247)", cat: "actinide", state: "Solid", block: "f", period: 7, group: 3, config: "[Rn] 5f⁷ 6d¹ 7s²", radioactive: true, summary: "Radioactive transuranic element named after Marie and Pierre Curie." },
+            { n: 97, s: "Bk", name: "Berkelium", mass: "(247)", cat: "actinide", state: "Solid", block: "f", period: 7, group: 3, config: "[Rn] 5f⁹ 7s²", radioactive: true, summary: "Synthetic actinide synthesized at UC Berkeley in 1949." },
+            { n: 98, s: "Cf", name: "Californium", mass: "(251)", cat: "actinide", state: "Solid", block: "f", period: 7, group: 3, config: "[Rn] 5f¹⁰ 7s²", radioactive: true, summary: "Strong neutron emitter used in coal analyzers and nuclear reactor startup rods." },
+            { n: 99, s: "Es", name: "Einsteinium", mass: "(252)", cat: "actinide", state: "Solid", block: "f", period: 7, group: 3, config: "[Rn] 5f¹¹ 7s²", radioactive: true, summary: "Discovered in fallout of Ivy Mike H-bomb detonation; named for Albert Einstein." },
+            { n: 100, s: "Fm", name: "Fermium", mass: "(257)", cat: "actinide", state: "Solid", block: "f", period: 7, group: 3, config: "[Rn] 5f¹² 7s²", radioactive: true, summary: "Heavy synthetic actinide named in honor of Enrico Fermi." },
+            { n: 101, s: "Md", name: "Mendelevium", mass: "(258)", cat: "actinide", state: "Solid", block: "f", period: 7, group: 3, config: "[Rn] 5f¹³ 7s²", radioactive: true, summary: "Synthetic actinide element named in honor of Dmitri Mendeleev." },
+            { n: 102, s: "No", name: "Nobelium", mass: "(259)", cat: "actinide", state: "Solid", block: "f", period: 7, group: 3, config: "[Rn] 5f¹⁴ 7s²", radioactive: true, summary: "Synthetic radioactive actinide named for Alfred Nobel." },
+            { n: 103, s: "Lr", name: "Lawrencium", mass: "(266)", cat: "actinide", state: "Solid", block: "f", period: 7, group: 3, config: "[Rn] 5f¹⁴ 6d¹ 7s²", radioactive: true, summary: "Final member of actinide series, named for Ernest Lawrence." },
+
+            // Period 7 Superheavies
+            { n: 104, s: "Rf", name: "Rutherfordium", mass: "(267)", cat: "transition-metal", state: "Unknown", block: "d", period: 7, group: 4, config: "[Rn] 5f¹⁴ 6d² 7s²", radioactive: true, summary: "Superheavy synthetic transition element." },
+            { n: 105, s: "Db", name: "Dubnium", mass: "(268)", cat: "transition-metal", state: "Unknown", block: "d", period: 7, group: 5, config: "[Rn] 5f¹⁴ 6d³ 7s²", radioactive: true, summary: "Superheavy element named after Dubna, Russia." },
+            { n: 106, s: "Sg", name: "Seaborgium", mass: "(269)", cat: "transition-metal", state: "Unknown", block: "d", period: 7, group: 6, config: "[Rn] 5f¹⁴ 6d⁴ 7s²", radioactive: true, summary: "Synthetic element named for chemist Glenn T. Seaborg." },
+            { n: 107, s: "Bh", name: "Bohrium", mass: "(270)", cat: "transition-metal", state: "Unknown", block: "d", period: 7, group: 7, config: "[Rn] 5f¹⁴ 6d⁵ 7s²", radioactive: true, summary: "Named after Danish atomic physicist Niels Bohr." },
+            { n: 108, s: "Hs", name: "Hassium", mass: "(277)", cat: "transition-metal", state: "Unknown", block: "d", period: 7, group: 8, config: "[Rn] 5f¹⁴ 6d⁶ 7s²", radioactive: true, summary: "Superheavy element named for German state of Hesse." },
+            { n: 109, s: "Mt", name: "Meitnerium", mass: "(278)", cat: "transition-metal", state: "Unknown", block: "d", period: 7, group: 9, config: "[Rn] 5f¹⁴ 6d⁷ 7s²", radioactive: true, summary: "Named in honor of nuclear physicist Lise Meitner." },
+            { n: 110, s: "Ds", name: "Darmstadtium", mass: "(281)", cat: "transition-metal", state: "Unknown", block: "d", period: 7, group: 10, config: "[Rn] 5f¹⁴ 6d⁸ 7s²", radioactive: true, summary: "Named after Darmstadt, Germany, location of GSI lab." },
+            { n: 111, s: "Rg", name: "Roentgenium", mass: "(282)", cat: "transition-metal", state: "Unknown", block: "d", period: 7, group: 11, config: "[Rn] 5f¹⁴ 6d⁹ 7s²", radioactive: true, summary: "Named for Wilhelm Röntgen, discoverer of X-rays." },
+            { n: 112, s: "Cn", name: "Copernicium", mass: "(285)", cat: "transition-metal", state: "Unknown", block: "d", period: 7, group: 12, config: "[Rn] 5f¹⁴ 6d¹⁰ 7s²", radioactive: true, summary: "Named after astronomer Nicolaus Copernicus." },
+            { n: 113, s: "Nh", name: "Nihonium", mass: "(286)", cat: "post-transition", state: "Unknown", block: "p", period: 7, group: 13, config: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p¹", radioactive: true, summary: "First superheavy element discovered in Japan (RIKEN)." },
+            { n: 114, s: "Fl", name: "Flerovium", mass: "(289)", cat: "post-transition", state: "Unknown", block: "p", period: 7, group: 14, config: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p²", radioactive: true, summary: "Named after Flerov Laboratory of Nuclear Reactions." },
+            { n: 115, s: "Mc", name: "Moscovium", mass: "(290)", cat: "post-transition", state: "Unknown", block: "p", period: 7, group: 15, config: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p³", radioactive: true, summary: "Superheavy element named after Moscow region." },
+            { n: 116, s: "Lv", name: "Livermorium", mass: "(293)", cat: "post-transition", state: "Unknown", block: "p", period: 7, group: 16, config: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁴", radioactive: true, summary: "Named for Lawrence Livermore National Laboratory." },
+            { n: 117, s: "Ts", name: "Tennessine", mass: "(294)", cat: "halogen", state: "Unknown", block: "p", period: 7, group: 17, config: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁵", radioactive: true, summary: "Superheavy halogen element named after Tennessee, USA." },
+            { n: 118, s: "Og", name: "Oganesson", mass: "(294)", cat: "noble-gas", state: "Unknown", block: "p", period: 7, group: 18, config: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁶", radioactive: true, summary: "Heaviest known chemical element; named after Yuri Oganessian." }
+        ];
+
+        const categories = {
+            'reactive-nonmetal': { name: 'Reactive Nonmetal', color: 'bg-reactive-nonmetal', text: 'text-lime-300', border: 'border-lime-500' },
+            'noble-gas': { name: 'Noble Gas', color: 'bg-noble-gas', text: 'text-purple-300', border: 'border-purple-500' },
+            'alkali-metal': { name: 'Alkali Metal', color: 'bg-alkali-metal', text: 'text-orange-300', border: 'border-orange-500' },
+            'alkaline-earth': { name: 'Alkaline Earth', color: 'bg-alkaline-earth', text: 'text-yellow-300', border: 'border-yellow-500' },
+            'metalloid': { name: 'Metalloid', color: 'bg-metalloid', text: 'text-emerald-300', border: 'border-emerald-500' },
+            'halogen': { name: 'Halogen', color: 'bg-halogen', text: 'text-pink-300', border: 'border-pink-500' },
+            'post-transition': { name: 'Post-Transition Metal', color: 'bg-post-transition', text: 'text-cyan-300', border: 'border-cyan-500' },
+            'transition-metal': { name: 'Transition Metal', color: 'bg-transition-metal', text: 'text-blue-300', border: 'border-blue-500' },
+            'lanthanide': { name: 'Lanthanide', color: 'bg-lanthanide', text: 'text-rose-300', border: 'border-rose-500' },
+            'actinide': { name: 'Actinide', color: 'bg-actinide', text: 'text-red-400', border: 'border-red-600' }
+        };
+
+        const stateIcons = {
+            'Solid': 'fa-cube',
+            'Liquid': 'fa-droplet',
+            'Gas': 'fa-wind',
+            'Unknown': 'fa-flask'
+        };
+
+        let activeCategories = new Set(Object.keys(categories));
+        let activeStates = new Set(['Solid', 'Liquid', 'Gas', 'Unknown']);
+        let activeBlocks = new Set(['s', 'p', 'd', 'f']);
+        let radioactivityFilter = 'all'; // 'all', 'stable', 'radioactive'
+        let searchQuery = '';
+
+        window.onload = function() {
+            renderFilterControls();
+            buildPeriodicTableGrid();
+            attachEventListeners();
+            updateFilterState();
+        };
+
+        function renderFilterControls() {
+            // Category checkboxes
+            const catContainer = document.getElementById('categoryFilters');
+            catContainer.innerHTML = Object.entries(categories).map(([key, cat]) => `
+                <label class="flex items-center justify-between text-xs cursor-pointer p-1 rounded hover:bg-slate-800 transition">
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" checked value="${key}" class="cat-checkbox rounded text-indigo-600 focus:ring-0 bg-slate-800 border-slate-700">
+                        <span class="w-2.5 h-2.5 rounded-full ${cat.color}"></span>
+                        <span class="text-slate-300">${cat.name}</span>
+                    </div>
+                </label>
+            `).join('');
+
+            // State toggle buttons
+            const stateContainer = document.getElementById('stateFilters');
+            stateContainer.innerHTML = ['Solid', 'Liquid', 'Gas', 'Unknown'].map(st => `
+                <button data-state="${st}" class="state-btn flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border text-xs font-medium transition border-indigo-500/50 bg-indigo-500/10 text-indigo-200">
+                    <i class="fa-solid ${stateIcons[st]} text-[10px]"></i> ${st}
+                </button>
+            `).join('');
+
+            // Block toggle buttons
+            const blockContainer = document.getElementById('blockFilters');
+            blockContainer.innerHTML = ['s', 'p', 'd', 'f'].map(blk => `
+                <button data-block="${blk}" class="block-btn px-2 py-1.5 rounded-lg border text-xs font-semibold uppercase transition border-indigo-500/50 bg-indigo-500/10 text-indigo-200">
+                    ${blk}
+                </button>
+            `).join('');
+        }
+
+        function buildPeriodicTableGrid() {
+            const mainGrid = document.getElementById('mainTableGrid');
+            const lanthRow = document.getElementById('lanthanideRow');
+            const actRow = document.getElementById('actinideRow');
+
+            mainGrid.innerHTML = '';
+            lanthRow.innerHTML = '';
+            actRow.innerHTML = '';
+
+            const gridMap = {};
+            elementsData.forEach(el => {
+                if (el.n >= 57 && el.n <= 71) return;
+                if (el.n >= 89 && el.n <= 103) return;
+                gridMap[`${el.period}-${el.group}`] = el;
+            });
+
+            for (let p = 1; p <= 7; p++) {
+                for (let g = 1; g <= 18; g++) {
+                    const el = gridMap[`${p}-${g}`];
+                    
+                    if (p === 6 && g === 3) {
+                        mainGrid.appendChild(createPlaceholderTile("57-71", "La-Lu", "bg-rose-950/40 border-rose-800/50 text-rose-300"));
+                        continue;
+                    }
+                    if (p === 7 && g === 3) {
+                        mainGrid.appendChild(createPlaceholderTile("89-103", "Ac-Lr", "bg-red-950/40 border-red-800/50 text-red-300"));
+                        continue;
+                    }
+
+                    if (el) {
+                        mainGrid.appendChild(createElementTile(el));
+                    } else {
+                        const emptySlot = document.createElement('div');
+                        emptySlot.className = "aspect-square";
+                        mainGrid.appendChild(emptySlot);
+                    }
+                }
+            }
+
+            elementsData.filter(e => e.n >= 57 && e.n <= 71).forEach(el => lanthRow.appendChild(createElementTile(el)));
+            elementsData.filter(e => e.n >= 89 && e.n <= 103).forEach(el => actRow.appendChild(createElementTile(el)));
+        }
+
+        function createPlaceholderTile(numRange, symbolRange, styles) {
+            const div = document.createElement('div');
+            div.className = `element-card rounded-lg border p-1 flex flex-col justify-between items-center text-center cursor-default ${styles}`;
+            div.innerHTML = `
+                <span class="text-[9px] font-mono leading-none opacity-80">${numRange}</span>
+                <span class="text-xs font-bold my-auto">${symbolRange}</span>
+                <span class="text-[8px] opacity-60">f-block</span>
+            `;
+            return div;
+        }
+
+        function createElementTile(el) {
+            const cat = categories[el.cat] || { color: 'bg-slate-700', text: 'text-slate-200' };
+            const tile = document.createElement('div');
+            tile.dataset.number = el.n;
+            tile.className = `element-card rounded-lg border border-slate-800/80 p-1 flex flex-col justify-between cursor-pointer relative group bg-slate-900/80 hover:scale-110 hover:z-20 hover:shadow-lg hover:shadow-indigo-500/20`;
+
+            tile.innerHTML = `
+                <div class="flex justify-between items-start text-[9px] font-mono leading-none">
+                    <span class="text-slate-400 font-semibold">${el.n}</span>
+                    <div class="flex items-center space-x-0.5">
+                        ${el.radioactive ? '<i class="fa-solid fa-radiation text-[9px] text-amber-400 mr-0.5"></i>' : ''}
+                        <span class="w-1.5 h-1.5 rounded-full ${cat.color} inline-block"></span>
+                    </div>
+                </div>
+                <div class="text-center my-auto">
+                    <div class="text-xs sm:text-sm font-bold tracking-tight text-slate-100">${el.s}</div>
+                    <div class="text-[8px] text-slate-400 truncate hidden sm:block">${el.name}</div>
+                </div>
+                <div class="text-[8px] text-slate-500 font-mono text-right leading-none truncate">${el.mass}</div>
+            `;
+
+            tile.addEventListener('mouseenter', () => inspectElement(el));
+            tile.addEventListener('click', () => inspectElement(el));
+
+            return tile;
+        }
+
+        function inspectElement(el) {
+            const defaultPanel = document.getElementById('inspectorDefaultState');
+            const contentPanel = document.getElementById('inspectorContent');
+            const tile = document.getElementById('inspectorTile');
+            
+            defaultPanel.classList.add('hidden');
+            contentPanel.classList.remove('hidden');
+
+            const cat = categories[el.cat] || { name: el.cat, color: 'bg-slate-700', text: 'text-slate-200', border: 'border-slate-700' };
+
+            tile.className = `w-32 h-32 rounded-xl p-3 border flex flex-col justify-between shrink-0 shadow-2xl relative bg-slate-950 ${cat.border}`;
+            
+            document.getElementById('inspNumber').textContent = `#${el.n}`;
+            document.getElementById('inspMass').textContent = el.mass;
+            document.getElementById('inspSymbol').textContent = el.s;
+            document.getElementById('inspSymbol').className = `text-4xl font-extrabold text-center my-auto tracking-tight ${cat.text}`;
+            document.getElementById('inspName').textContent = el.name;
+
+            document.getElementById('inspCategory').textContent = cat.name;
+            document.getElementById('inspCategory').className = `font-semibold ${cat.text}`;
+
+            const radElem = document.getElementById('inspRad');
+            if (el.radioactive) {
+                radElem.innerHTML = `<i class="fa-solid fa-radiation text-amber-400"></i> <span class="text-amber-300">Radioactive</span>`;
+            } else {
+                radElem.innerHTML = `<i class="fa-solid fa-shield-halved text-emerald-400"></i> <span class="text-emerald-300">Stable</span>`;
+            }
+
+            document.getElementById('inspState').textContent = el.state;
+            document.getElementById('inspBlock').textContent = `${el.block}-block`;
+            document.getElementById('inspConfig').textContent = el.config;
+            document.getElementById('inspGroupPeriod').textContent = `Period ${el.period}, Group ${el.group || 'N/A'}`;
+            document.getElementById('inspSummary').textContent = el.summary || "No description available.";
+        }
+
+        function attachEventListeners() {
+            // Radioactivity segment buttons
+            document.querySelectorAll('.rad-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.rad-btn').forEach(b => {
+                        b.className = "rad-btn px-2 py-1 text-xs font-medium rounded-md transition text-slate-400 hover:text-slate-200";
+                    });
+                    btn.className = "rad-btn active px-2 py-1 text-xs font-medium rounded-md transition text-indigo-300 bg-indigo-600/30 border border-indigo-500/40";
+                    radioactivityFilter = btn.dataset.rad;
+                    updateFilterState();
+                });
+            });
+
+            // Category checkboxes
+            document.querySelectorAll('.cat-checkbox').forEach(cb => {
+                cb.addEventListener('change', (e) => {
+                    if (e.target.checked) activeCategories.add(e.target.value);
+                    else activeCategories.delete(e.target.value);
+                    updateFilterState();
+                });
+            });
+
+            // State buttons
+            document.querySelectorAll('.state-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const st = btn.dataset.state;
+                    if (activeStates.has(st)) {
+                        activeStates.delete(st);
+                        btn.className = "state-btn flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border text-xs font-medium transition border-slate-700 bg-slate-800/50 text-slate-400 opacity-60";
+                    } else {
+                        activeStates.add(st);
+                        btn.className = "state-btn flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border text-xs font-medium transition border-indigo-500/50 bg-indigo-500/10 text-indigo-200";
+                    }
+                    updateFilterState();
+                });
+            });
+
+            // Block buttons
+            document.querySelectorAll('.block-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const blk = btn.dataset.block;
+                    if (activeBlocks.has(blk)) {
+                        activeBlocks.delete(blk);
+                        btn.className = "block-btn px-2 py-1.5 rounded-lg border text-xs font-semibold uppercase transition border-slate-700 bg-slate-800/50 text-slate-400 opacity-60";
+                    } else {
+                        activeBlocks.add(blk);
+                        btn.className = "block-btn px-2 py-1.5 rounded-lg border text-xs font-semibold uppercase transition border-indigo-500/50 bg-indigo-500/10 text-indigo-200";
+                    }
+                    updateFilterState();
+                });
+            });
+
+            // Search box
+            const searchInput = document.getElementById('searchInput');
+            const clearBtn = document.getElementById('clearSearch');
+
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value.toLowerCase().trim();
+                clearBtn.classList.toggle('hidden', searchQuery === '');
+                updateFilterState();
+            });
+
+            clearBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                searchQuery = '';
+                clearBtn.classList.add('hidden');
+                updateFilterState();
+            });
+
+            // Reset filters button
+            document.getElementById('resetFilters').addEventListener('click', () => {
+                activeCategories = new Set(Object.keys(categories));
+                activeStates = new Set(['Solid', 'Liquid', 'Gas', 'Unknown']);
+                activeBlocks = new Set(['s', 'p', 'd', 'f']);
+                radioactivityFilter = 'all';
+                searchQuery = '';
+                searchInput.value = '';
+                clearBtn.classList.add('hidden');
+
+                document.querySelectorAll('.cat-checkbox').forEach(cb => cb.checked = true);
+                document.querySelectorAll('.state-btn').forEach(btn => {
+                    btn.className = "state-btn flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border text-xs font-medium transition border-indigo-500/50 bg-indigo-500/10 text-indigo-200";
+                });
+                document.querySelectorAll('.block-btn').forEach(btn => {
+                    btn.className = "block-btn px-2 py-1.5 rounded-lg border text-xs font-semibold uppercase transition border-indigo-500/50 bg-indigo-500/10 text-indigo-200";
+                });
+                document.querySelectorAll('.rad-btn').forEach((b, idx) => {
+                    b.className = idx === 0 
+                        ? "rad-btn active px-2 py-1 text-xs font-medium rounded-md transition text-indigo-300 bg-indigo-600/30 border border-indigo-500/40"
+                        : "rad-btn px-2 py-1 text-xs font-medium rounded-md transition text-slate-400 hover:text-slate-200";
+                });
+
+                updateFilterState();
+            });
+
+            // Educational Panel Toggle
+            const guidePanel = document.getElementById('orbitalGuidePanel');
+            document.getElementById('toggleGuideBtn').addEventListener('click', () => {
+                guidePanel.classList.toggle('hidden');
+            });
+            document.getElementById('closeGuideBtn').addEventListener('click', () => {
+                guidePanel.classList.add('hidden');
+            });
+        }
+
+        function updateFilterState() {
+            let matchCount = 0;
+
+            elementsData.forEach(el => {
+                const tile = document.querySelector(`[data-number="${el.n}"]`);
+                if (!tile) return;
+
+                const catMatch = activeCategories.has(el.cat);
+                const stateMatch = activeStates.has(el.state);
+                const blockMatch = activeBlocks.has(el.block);
+
+                let radMatch = true;
+                if (radioactivityFilter === 'radioactive') radMatch = el.radioactive;
+                else if (radioactivityFilter === 'stable') radMatch = !el.radioactive;
+
+                const searchMatch = !searchQuery || 
+                    el.name.toLowerCase().includes(searchQuery) ||
+                    el.s.toLowerCase().includes(searchQuery) ||
+                    el.n.toString() === searchQuery;
+
+                const isMatch = catMatch && stateMatch && blockMatch && radMatch && searchMatch;
+
+                if (isMatch) {
+                    tile.classList.remove('dimmed');
+                    matchCount++;
+                } else {
+                    tile.classList.add('dimmed');
+                }
+            });
+
+            document.getElementById('matchingCount').textContent = `${matchCount} / 118`;
+        }
+    </script>
+</body>
+</html>
